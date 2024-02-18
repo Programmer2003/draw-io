@@ -72,6 +72,7 @@ const Board = ({ id, canvasFile }) => {
         else if (actionMenuItem == MENU_ITEMS.HOME) {
             handleSubmit(canvas.toDataURL());
             router.push('/');
+            router.refresh();
         }
         dispatch(actionItemClick(null))
     }, [id, router, color, size, actionMenuItem, dispatch])

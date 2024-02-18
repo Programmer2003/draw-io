@@ -91,7 +91,7 @@ const Board = ({ id, canvasFile }) => {
         const context = canvas.getContext('2d')
 
         canvas.width = 1900
-        canvas.height = window.innerHeight
+        canvas.height = 1000
         var image = new Image();
         image.onload = function () {
             context.clearRect(0, 0, canvas.width, canvas.height);
@@ -127,14 +127,14 @@ const Board = ({ id, canvasFile }) => {
         }
         const handleMouseDown = (e) => {
             shouldDraw.current = true
-            beginPath(e.clientX || e.touches[0].clientX, e.clientY || e.touches[0].clientY)
-            socket.emit('beginPath', { x: e.clientX || e.touches[0].clientX, y: e.clientY || e.touches[0].clientY, id: id })
+            beginPath(e.pageX || e.touches[0].clientX, e.pageY || e.touches[0].clientY)
+            socket.emit('beginPath', { x: e.pageX || e.touches[0].clientX, y: e.pageY || e.touches[0].clientY, id: id })
         }
 
         const handleMouseMove = (e) => {
             if (!shouldDraw.current) return
-            drawLine(e.clientX || e.touches[0].clientX, e.clientY || e.touches[0].clientY)
-            socket.emit('drawLine', { x: e.clientX || e.touches[0].clientX, y: e.clientY || e.touches[0].clientY, id: id, color: color, size: size })
+            drawLine(e.pageX || e.touches[0].clientX, e.pageY || e.touches[0].clientY)
+            socket.emit('drawLine', { x: e.pageX || e.touches[0].clientX, y: e.pageY || e.touches[0].clientY, id: id, color: color, size: size })
         }
 
         const handleMouseUp = (e) => {

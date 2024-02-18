@@ -18,7 +18,7 @@ const getTopics = async () => {
 };
 
 export default async function TopicsList() {
-  const { topics } = await getTopics();
+  const { topics } = [];
 
   return (
     <div className="album py-5 ">

@@ -3,7 +3,7 @@ import Canvas from "./Canvas";
 
 const getTopics = async () => {
   try {
-    const res = await fetch("http://localhost:3000/api/topics", {
+    const res = await fetch("https://draw-io-eight.vercel.app/api/topics", {
       cache: "no-store",
     });
 

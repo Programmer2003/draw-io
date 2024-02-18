@@ -22,7 +22,7 @@ const Board = ({ id, canvasFile }) => {
 
     const handleSubmit = async (newCanvasFile) => {
         try {
-            const res = await fetch(`http://localhost:3000/api/topics/${id}`, {
+            const res = await fetch(`https://draw-io-eight.vercel.app/api/topics/${id}`, {
                 method: "PUT",
                 headers: {
                     "Content-type": "application/json",

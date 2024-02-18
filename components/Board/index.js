@@ -21,7 +21,7 @@ const Board = ({ id, canvasFile }) => {
     const { activeMenuItem, actionMenuItem } = useSelector((state) => state.menu)
     const { color, size } = useSelector((state) => state.toolbox[activeMenuItem])
 
-    const handleSubmit = async (newCanvasFile) => {
+    const handleSubmit = async (newCanvasFile, confirm = true) => {
         try {
             const res = await fetch(`https://draw-io-eight.vercel.app/api/topics/${id}`, {
                 method: "PUT",
@@ -35,7 +35,9 @@ const Board = ({ id, canvasFile }) => {
                 toast.error("Couldn't save image.")
             }
             else {
-                toast.success('Saved successfully.')
+                if (confirm) {
+                    toast.success('Saved successfully.')
+                }
             }
         } catch (error) {
             console.log(error);
@@ -137,6 +139,7 @@ const Board = ({ id, canvasFile }) => {
             drawHistory.current.push(imageData)
             historyPointer.current = drawHistory.current.length - 1
             socket.emit('drawPolling', { points: drawPoints.current, id: id, color: color, size: size, operation: context.globalCompositeOperation })
+            handleSubmit(canvas.toDataURL(), false);
         }
 
         const handleDrawPolling = (path) => {

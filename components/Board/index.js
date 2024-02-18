@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux'
 
 import { useRouter } from "next/navigation";
 
-import { COLORS, MENU_ITEMS } from "@/constants";
+import { MENU_ITEMS } from "@/constants";
 import { actionItemClick } from '@/slice/menuSlice'
 
 import { socket } from "@/socket";
@@ -48,11 +48,9 @@ const Board = ({ id, canvasFile }) => {
         const context = canvas.getContext('2d')
         if (actionMenuItem === MENU_ITEMS.PENCIL) {
             context.globalCompositeOperation = 'source-over';
-            console.log('over')
         }
         else if (actionMenuItem === MENU_ITEMS.ERASER) {
             context.globalCompositeOperation = 'destination-out';
-            console.log('out')
         }
         else if (actionMenuItem === MENU_ITEMS.DOWNLOAD) {
             const URL = canvas.toDataURL()
@@ -60,18 +58,17 @@ const Board = ({ id, canvasFile }) => {
             anchor.href = URL
             anchor.download = 'sample.jpg'
             anchor.click()
+            handleSubmit(canvas.toDataURL());
         } else if (actionMenuItem === MENU_ITEMS.UNDO || actionMenuItem === MENU_ITEMS.REDO) {
             if (historyPointer.current > 0 && actionMenuItem === MENU_ITEMS.UNDO) historyPointer.current -= 1
             if (historyPointer.current < drawHistory.current.length - 1 && actionMenuItem === MENU_ITEMS.REDO) historyPointer.current += 1
             const imageData = drawHistory.current[historyPointer.current]
             context.putImageData(imageData, 0, 0)
         } else if (actionMenuItem == MENU_ITEMS.SAVE) {
-            const newCanvasFile = canvas.toDataURL();
-            handleSubmit(newCanvasFile);
+            handleSubmit(canvas.toDataURL());
         }
         else if (actionMenuItem == MENU_ITEMS.HOME) {
-            const newCanvasFile = canvas.toDataURL();
-            handleSubmit(newCanvasFile);
+            handleSubmit(canvas.toDataURL());
             router.push('/');
         }
         dispatch(actionItemClick(null))
@@ -82,16 +79,8 @@ const Board = ({ id, canvasFile }) => {
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d')
 
-        const changeConfig = (color, size) => {
-            context.strokeStyle = color ? color : COLORS.BLACK
-            context.lineWidth = size ? size : 3
-        }
-
-        const handleChangeConfig = (config) => {
-            console.log("config", config)
-            changeConfig(config.color, config.size)
-        }
-        changeConfig(color, size)
+        context.strokeStyle = color
+        context.lineWidth = size
     }, [id, color, size])
 
     useEffect(() => {
@@ -126,33 +115,20 @@ const Board = ({ id, canvasFile }) => {
             drawPoints.current = [];
         }
 
-        const drawLine = (x, y, withColor = null, withSize = null) => {
+        const drawLine = (x, y) => {
             context.lineTo(x, y)
             drawPoints.current.push({ x, y });
-            if (withColor != null) {
-                context.strokeStyle = withColor
-            }
-
-            if (withSize != null) {
-                context.lineWidth = withSize;
-            }
-
             context.stroke()
-            context.strokeStyle = color
-            context.strokeStyle = size
-            
         }
         const handleMouseDown = (e) => {
             drawPoints.current = [];
             shouldDraw.current = true
             beginPath(e.pageX || e.touches[0].clientX, e.pageY || e.touches[0].clientY)
-            // socket.emit('beginPath', { x: e.pageX || e.touches[0].clientX, y: e.pageY || e.touches[0].clientY, id: id })
         }
 
         const handleMouseMove = (e) => {
             if (!shouldDraw.current) return
             drawLine(e.pageX || e.touches[0].clientX, e.pageY || e.touches[0].clientY)
-            // socket.emit('drawLine', { x: e.pageX || e.touches[0].clientX, y: e.pageY || e.touches[0].clientY, id: id, color: color, size: size })
         }
 
         const handleMouseUp = (e) => {
@@ -160,43 +136,39 @@ const Board = ({ id, canvasFile }) => {
             const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
             drawHistory.current.push(imageData)
             historyPointer.current = drawHistory.current.length - 1
-            socket.emit('drawPolling', { points: drawPoints.current, id: id, color: color, size: size })
-        }
-
-        const handleBeginPath = (path) => {
-            beginPath(path.x, path.y)
-        }
-
-        const handleDrawLine = (path) => {
-            drawLine(path.x, path.y, path.color, path.size)
+            socket.emit('drawPolling', { points: drawPoints.current, id: id, color: color, size: size, operation: context.globalCompositeOperation })
         }
 
         const handleDrawPolling = (path) => {
-            console.log(path);
-            drawPolling(path.points, path.color, path.size)
+            drawPolling(path.points, path.color, path.size, path.operation)
         }
 
-        const drawPolling = (points, withColor = null, withSize = null) => {
-            if (withColor != null) {
-                console.log(withColor);
-                context.strokeStyle = withColor
-                console.log(context.stroke);
-                console.log(context.strokeStyle);
-            }
-
-            if (withSize != null) {
-                console.log(withSize);
-                context.lineWidth = withSize;
-            }
+        const drawPolling = (points, newColor, newSize, operation) => {
+            var tmpOperation = context.globalCompositeOperation;
+            context.strokeStyle = newColor;
+            context.lineWidth = newSize;
+            context.globalCompositeOperation = operation;
 
             if (!points || points.length < 1) return;
-            beginPath(points[0].x, points[0].y);
+            beginPathPolling(points[0].x, points[0].y);
             for (const point of points) {
-                drawLine(point.x, point.y);
+                drawLinePolling(point.x, point.y);
             }
             closePath();
-            context.strokeStyle = color
-            context.strokeStyle = size
+
+            context.strokeStyle = color;
+            context.lineWidth = size;
+            context.globalCompositeOperation = tmpOperation;
+        }
+
+        const drawLinePolling = (x, y) => {
+            context.lineTo(x, y)
+            context.stroke()
+        }
+
+        const beginPathPolling = (x, y) => {
+            context.beginPath()
+            context.moveTo(x, y)
         }
 
         canvas.addEventListener('mousedown', handleMouseDown)
@@ -207,9 +179,6 @@ const Board = ({ id, canvasFile }) => {
         canvas.addEventListener('touchmove', handleMouseMove)
         canvas.addEventListener('touchend', handleMouseUp)
 
-
-        // socket.on('beginPath' + id, handleBeginPath)
-        // socket.on('drawLine' + id, handleDrawLine)
         socket.on('drawPolling' + id, handleDrawPolling)
 
         return () => {
@@ -221,8 +190,7 @@ const Board = ({ id, canvasFile }) => {
             canvas.removeEventListener('touchmove', handleMouseMove)
             canvas.removeEventListener('touchend', handleMouseUp)
 
-            // socket.off('beginPath' + id, handleBeginPath)
-            // socket.off('drawLine' + id, handleDrawLine)
+            socket.off('drawPolling' + id, handleDrawPolling)
         }
     }, [color, size, id])
 
